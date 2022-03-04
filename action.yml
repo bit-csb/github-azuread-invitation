@@ -66,11 +66,11 @@ runs:
         }
 
         locals {
-          message_body = ${{ inputs.message_body }}
+          message_body = "${{ inputs.message_body }}"
           
-          redirect_url = ${{ inputs.redirect_url }}
+          redirect_url = "${{ inputs.redirect_url }}"
 
-          user_type = ${{ inputs.user_type }}
+          user_type = "${{ inputs.user_type }}"
 
           users = toset(flatten([for value in local.${{ inputs.map-name }} : value.${{ inputs.users-property }}]))
 
