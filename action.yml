@@ -116,7 +116,7 @@ runs:
         }
         EOL
 
-        cat terraform.tf
+        # cat terraform.tf
       working-directory: "./tf_invitation"
 
     - name: Setup Terraform
