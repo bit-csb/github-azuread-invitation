@@ -1,0 +1,76 @@
+name: 'Terraform flow'
+
+description: 'Perform terraform flow in given directory'
+
+inputs:
+  map-file:
+    description: 'the path of the file containing the map'
+    required: true
+  map-name:
+    description: 'the name of the map'
+    required: true
+  users-property:
+    description: 'the name of the users property within the map'
+    required: true
+
+
+runs:
+  using: "composite"
+  steps: 
+    - name: Copy map file
+      shell: bash
+      run: cp ${{ inputs.map-file }} ./tf_invitation/
+    
+    - name: Wirte locals.tf
+      shell: bash
+      run: |
+        cat > local.tf <<EOL
+        locals {
+          users = toset(flatten([for value in local.${{ inputs.map-name }} : value.${{ inputs.users-property }}]))
+        }
+        EOL
+      working-directory: "./tf_invitation"
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+
+    - name: Terraform Init
+      id: init
+      shell: bash
+      run: terraform init 
+      working-directory: "./tf_invitation"
+
+    - name: Terraform Validate
+      id: validate
+      shell: bash
+      run: terraform validate -no-color
+      working-directory: "./tf_invitation"
+
+    - name: Terraform Plan
+      id: plan
+      shell: bash    
+      run: terraform plan -no-color ${{ steps.parameters.outputs.varFile }}
+      working-directory: "./tf_invitation"
+  
+    - name: Failed plan
+      if: ${{ failure() }}
+      env:
+        PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+      id: failed-plan
+      shell: bash
+      run: |
+        # const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+        const output = `#### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+        #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+        #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+        <details><summary>Show Plan</summary>
+        \`\`\`\
+        ${process.env.PLAN}
+        \`\`\`
+        </details>        
+
+    - name: Terraform Apply
+      id: apply
+      shell: bash    
+      run: terraform apply -auto-approve ${{ steps.parameters.outputs.varFile }}
+      working-directory: "./tf_invitation"

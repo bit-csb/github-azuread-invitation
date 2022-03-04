@@ -1,0 +1,53 @@
+name: "Test"
+
+env:
+  ARM_ENVIRONMENT: ${{ secrets.AZURE_AD_D01_ENVIRONMENT }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_AD_D01_TENANT_ID }}
+  ARM_CLIENT_ID: ${{ secrets.AZURE_AD_D01_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.AZURE_AD_D01_ARM_CLIENT_SECRET }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+concurrency: azure_invitation_flow
+
+on:
+  push:
+
+jobs:
+  test:
+    name: "Test"
+    runs-on: ubuntu-latest
+
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Copy action.yml
+        run: |
+          mkdir -p .github/actions/invitation-flow
+          cp action.yml .github/actions/invitation-flow/
+
+      - name: Test - groups
+        uses: ./.github/actions/invitation-flow
+        with:
+          map-file: "./test/groups.tf"
+          map-name: "group_map"
+          users-property: "members"
+
+      # - name: Test - subscriptions
+      #   uses: ./.github/actions/invitation-flow
+      #   with:
+      #     map-file: "./test/subscriptions.tf"
+      #     map-name: "subscription_map"
+      #     users-property: "owners"
+
+      # - name: Test - accounts
+      #   uses: ./.github/actions/invitation-flow
+      #   with:
+      #     map-file: "./test/accounts.tf"
+      #     map-name: "account_map"
+      #     users-property: "owners"
