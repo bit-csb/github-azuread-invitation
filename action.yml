@@ -17,16 +17,52 @@ inputs:
 runs:
   using: "composite"
   steps: 
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Configure ssh
+      uses: bit-csb/github-configure-ssh@v1
+      with:
+        privateSshKey: ${{ secrets.BIT_CSB_SSH_PRIVATE_KEY }}
+
     - name: Copy map file
       shell: bash
-      run: cp ${{ inputs.map-file }} ./tf_invitation/
+      run: |
+        mkdir -p ./tf_invitation
+        cp ${{ inputs.map-file }} ./tf_invitation/
     
-    - name: Wirte locals.tf
+    - name: Wirte terraform.tf
       shell: bash
       run: |
-        cat > local.tf <<EOL
+        cat > terraform.tf <<EOL
+        terraform {
+          required_version = "~>1.1.2"
+
+          backend "azurerm" {}
+
+          required_providers {
+            azuread = {
+              source  = "hashicorp/azuread"
+              version = "~>2.15.0"
+            }
+          }
+        }
+
+        provider "azuread" {
+        }
+
         locals {
           users = toset(flatten([for value in local.${{ inputs.map-name }} : value.${{ inputs.users-property }}]))
+        }
+  
+        module "invite_users" {
+          source = "git@github-bit-csb:bit-csb/terraform-azuread-invitation?ref=0.1.0"
+
+          users = local.users
+        }
+
+        output "users" {
+          value = local.users
         }
         EOL
 
