@@ -23,7 +23,7 @@ runs:
     - name: Configure ssh
       uses: bit-csb/github-configure-ssh@v1
       with:
-        privateSshKey: ${{ env.SSH_PRIVATE_KEY }}
+        privateSshKey: $SSH_PRIVATE_KEY
 
     - name: Copy map file
       shell: bash
