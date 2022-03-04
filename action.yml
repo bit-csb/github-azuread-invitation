@@ -44,18 +44,58 @@ runs:
         provider "azuread" {
         }
 
+        data "azuread_domains" "aad_domains" {
+          admin_managed = true
+          only_initial  = true
+        }
+
+        data "azuread_users" "users" {
+          user_principal_names = local.upn_set
+          ignore_missing       = true
+        }
+
         locals {
           users = toset(flatten([for value in local.${{ inputs.map-name }} : value.${{ inputs.users-property }}]))
+
+          default_domain = lower(data.azuread_domains.aad_domains.domains.*.domain_name[0])
+        }
+
+        locals {
+          upn_set = toset([for key, value in {
+              for user in local.users : user => regex("(?P<localPart>^[^@]+)@(?P<domain>.+$)", user)
+            } :
+          lower(value.domain) != local.default_domain ? "${lower(value.localPart)}_${lower(value.domain)}#EXT#@${local.default_domain}" : key])
+        }
+
+        locals {
+          existing_users = [for user in data.azuread_users.users.users : user.mail != "" ? user.mail : user.user_principal_name]
+        }
+
+        locals {
+          invited_users = setsubtract(local.users, local.existing_users)
         }
   
-        module "invite_users" {
-          source = "git@github-bit-csb:bit-csb/terraform-azuread-invitation?ref=0.1.0"
+        resource "azuread_invitation" "owner_invitation" {
+          for_each = local.invited_users
 
-          users = local.users
+          user_email_address = each.key
+          redirect_url       = var.redirect_url
+          user_type          = var.user_type
+          message {
+            body = var.message_body
+          }
         }
 
         output "users" {
           value = local.users
+        }
+
+        output "existing_users" {
+          value = local.existing_users
+        }
+
+        output "invited_users" {
+          value = local.invited_users
         }
         EOL
 
