@@ -20,11 +20,6 @@ runs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Configure ssh
-      uses: bit-csb/github-configure-ssh@v1
-      with:
-        privateSshKey: $SSH_PRIVATE_KEY
-
     - name: Copy map file
       shell: bash
       run: |
