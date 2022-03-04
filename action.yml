@@ -12,6 +12,17 @@ inputs:
   users-property:
     description: 'the name of the users property within the map'
     required: true
+  message_body:
+    description: "Customized message body you want to send if you don't want to send the default message."
+    required: true
+  redirect_url:
+    description: 'The URL that the user should be redirected to once the invitation is redeemed.'
+    required: false
+    default: 'https://portal.azure.com'
+  user_type:
+    description: 'The user type of the user being invited. Must be one of Guest or Member. Only Global Administrators can invite users as members. Defaults to Guest.'
+    required: false
+    default: 'Guest'
 
 
 runs:
@@ -55,6 +66,12 @@ runs:
         }
 
         locals {
+          message_body = ${{ inputs.message_body }}
+          
+          redirect_url = ${{ inputs.redirect_url }}
+
+          user_type = ${{ inputs.user_type }}
+
           users = toset(flatten([for value in local.${{ inputs.map-name }} : value.${{ inputs.users-property }}]))
 
           default_domain = lower(data.azuread_domains.aad_domains.domains.*.domain_name[0])
@@ -79,10 +96,10 @@ runs:
           for_each = local.invited_users
 
           user_email_address = each.key
-          redirect_url       = var.redirect_url
-          user_type          = var.user_type
+          redirect_url       = local.redirect_url
+          user_type          = local.user_type
           message {
-            body = var.message_body
+            body = local.message_body
           }
         }
 
