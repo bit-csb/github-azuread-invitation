@@ -29,6 +29,8 @@ runs:
           users = toset(flatten([for value in local.${{ inputs.map-name }} : value.${{ inputs.users-property }}]))
         }
         EOL
+
+        cat local.tf
       working-directory: "./tf_invitation"
 
     - name: Setup Terraform
