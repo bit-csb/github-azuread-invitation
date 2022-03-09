@@ -1,8 +1,8 @@
 locals {
     upn_set = toset([for key, value in {
-        for user in local.users : user => regex("(?P<localPart>^[^@]+)@(?P<domain>.+\$)", user)
+        for user in local.users : user => regex("(?P<localPart>^[^@]+)@(?P<domain>.+)", user)
     } :
-    lower(value.domain) != local.default_domain ? "\${lower(value.localPart)}_\${lower(value.domain)}#EXT#@\${local.default_domain}" : key])
+    lower(value.domain) != local.default_domain ? "{lower(value.localPart)}_{lower(value.domain)}#EXT#@{local.default_domain}" : key])
 }
 
 locals {
