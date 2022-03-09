@@ -1,4 +1,4 @@
-name: "Terraform flow"
+name: "Azure AD Invitation"
 
 description: "Perform terraform flow in given directory"
 
