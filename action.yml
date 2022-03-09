@@ -1,70 +1,52 @@
-name: 'Terraform flow'
+name: "Terraform flow"
 
-description: 'Perform terraform flow in given directory'
+description: "Perform terraform flow in given directory"
 
 inputs:
   map-file:
-    description: 'the path of the file containing the map'
+    description: "the path of the file containing the map"
     required: true
   map-name:
-    description: 'the name of the map'
+    description: "the name of the map"
     required: true
   users-property:
-    description: 'the name of the users property within the map'
+    description: "the name of the users property within the map"
     required: true
   message_body:
     description: "Customized message body you want to send if you don't want to send the default message."
     required: true
   redirect_url:
-    description: 'The URL that the user should be redirected to once the invitation is redeemed.'
+    description: "The URL that the user should be redirected to once the invitation is redeemed."
     required: false
-    default: 'https://portal.azure.com'
+    default: "https://portal.azure.com"
   user_type:
-    description: 'The user type of the user being invited. Must be one of Guest or Member. Only Global Administrators can invite users as members. Defaults to Guest.'
+    description: "The user type of the user being invited. Must be one of Guest or Member. Only Global Administrators can invite users as members. Defaults to Guest."
     required: false
-    default: 'Guest'
-
+    default: "Guest"
 
 runs:
   using: "composite"
-  steps: 
+  steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
-    - name: Copy map file
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        repository: 'bit-csb/github-azuread-invitation'
+        path: 'github-azuread-invitation'
+
+    - name: Copy files
       shell: bash
       run: |
         mkdir -p ./tf_invitation
         cp ${{ inputs.map-file }} ./tf_invitation/
-    
-    - name: Wirte terraform.tf
+        cp github-azuread-invitation/terraform/* ./tf_invitation/
+
+    - name: Wirte inputs.tf
       shell: bash
       run: |
-        cat > terraform.tf <<EOL
-        terraform {
-          required_version = "~>1.1.2"
-
-          required_providers {
-            azuread = {
-              source  = "hashicorp/azuread"
-              version = "~>2.15.0"
-            }
-          }
-        }
-
-        provider "azuread" {
-        }
-
-        data "azuread_domains" "aad_domains" {
-          admin_managed = true
-          only_initial  = true
-        }
-
-        data "azuread_users" "users" {
-          user_principal_names = local.upn_set
-          ignore_missing       = true
-        }
-
+        cat > inputs.tf <<EOL
         locals {
           message_body = "${{ inputs.message_body }}"
           
@@ -76,47 +58,9 @@ runs:
 
           default_domain = lower(data.azuread_domains.aad_domains.domains.*.domain_name[0])
         }
-
-        locals {
-          upn_set = toset([for key, value in {
-              for user in local.users : user => regex("(?P<localPart>^[^@]+)@(?P<domain>.+\$)", user)
-            } :
-          lower(value.domain) != local.default_domain ? "\${lower(value.localPart)}_\${lower(value.domain)}#EXT#@\${local.default_domain}" : key])
-        }
-
-        locals {
-          existing_users = [for user in data.azuread_users.users.users : user.mail != "" ? user.mail : user.user_principal_name]
-        }
-
-        locals {
-          invited_users = setsubtract(local.users, local.existing_users)
-        }
-  
-        resource "azuread_invitation" "owner_invitation" {
-          for_each = local.invited_users
-
-          user_email_address = each.key
-          redirect_url       = local.redirect_url
-          user_type          = local.user_type
-          message {
-            body = local.message_body
-          }
-        }
-
-        output "users" {
-          value = local.users
-        }
-
-        output "existing_users" {
-          value = local.existing_users
-        }
-
-        output "invited_users" {
-          value = local.invited_users
-        }
         EOL
 
-        # cat terraform.tf
+        # cat inputs.tf
       working-directory: "./tf_invitation"
 
     - name: Setup Terraform
@@ -125,7 +69,7 @@ runs:
     - name: Terraform Init
       id: init
       shell: bash
-      run: terraform init 
+      run: terraform init
       working-directory: "./tf_invitation"
 
     - name: Terraform Validate
@@ -136,10 +80,10 @@ runs:
 
     - name: Terraform Plan
       id: plan
-      shell: bash    
+      shell: bash
       run: terraform plan -no-color ${{ steps.parameters.outputs.varFile }}
       working-directory: "./tf_invitation"
-  
+
     - name: Failed plan
       if: ${{ failure() }}
       env:
@@ -155,10 +99,10 @@ runs:
         \`\`\`\
         ${process.env.PLAN}
         \`\`\`
-        </details>        
+        </details>
 
     - name: Terraform Apply
       id: apply
-      shell: bash    
+      shell: bash
       run: terraform apply -auto-approve ${{ steps.parameters.outputs.varFile }}
       working-directory: "./tf_invitation"
