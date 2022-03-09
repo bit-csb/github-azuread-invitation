@@ -1,6 +1,6 @@
 name: "Azure AD Invitation"
 
-description: "Perform terraform flow in given directory"
+description: "Perform the missing invitations for Azure AD"
 
 inputs:
   map-file:
