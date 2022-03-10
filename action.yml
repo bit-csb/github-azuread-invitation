@@ -29,9 +29,6 @@ runs:
   steps:
     - name: Checkout
       uses: actions/checkout@v3
-
-    - name: Checkout
-      uses: actions/checkout@v3
       with:
         repository: 'bit-csb/github-azuread-invitation'
         path: 'github-azuread-invitation'
@@ -39,9 +36,7 @@ runs:
     - name: Copy files
       shell: bash
       run: |
-        mkdir -p ./tf_invitation
-        cp ${{ inputs.map-file }} ./tf_invitation/
-        cp github-azuread-invitation/terraform/* ./tf_invitation/
+        cp ${{ inputs.map-file }} ./github-azuread-invitation/terraform
 
     - name: Wirte inputs.tf
       shell: bash
@@ -61,48 +56,9 @@ runs:
         EOL
 
         # cat inputs.tf
-      working-directory: "./tf_invitation"
+      working-directory: "./github-azuread-invitation/terraform"
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v1
-
-    - name: Terraform Init
-      id: init
-      shell: bash
-      run: terraform init
-      working-directory: "./tf_invitation"
-
-    - name: Terraform Validate
-      id: validate
-      shell: bash
-      run: terraform validate -no-color
-      working-directory: "./tf_invitation"
-
-    - name: Terraform Plan
-      id: plan
-      shell: bash
-      run: terraform plan -no-color ${{ steps.parameters.outputs.varFile }}
-      working-directory: "./tf_invitation"
-
-    - name: Failed plan
-      if: ${{ failure() }}
-      env:
-        PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
-      id: failed-plan
-      shell: bash
-      run: |
-        # const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
-        const output = `#### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
-        #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
-        #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
-        <details><summary>Show Plan</summary>
-        \`\`\`\
-        ${process.env.PLAN}
-        \`\`\`
-        </details>
-
-    - name: Terraform Apply
-      id: apply
-      shell: bash
-      run: terraform apply -auto-approve ${{ steps.parameters.outputs.varFile }}
-      working-directory: "./tf_invitation"
+    - name: Create Azure AD Groups
+      uses: bit-csb/github-terraform-flow@v3
+      with:
+        directory: "./github-azuread-invitation/terraform"
