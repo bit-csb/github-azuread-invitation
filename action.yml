@@ -33,7 +33,7 @@ runs:
         repository: 'bit-csb/github-azuread-invitation'
         path: 'github-azuread-invitation'
 
-    - name: Copy files
+    - name: Copy map file
       shell: bash
       run: |
         cp ${{ inputs.map-file }} ./github-azuread-invitation/terraform
